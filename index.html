@@ -3,61 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blind White Elephant Drawer</title>
+  <title>White Elephant 2025 – Secret Picker</title>
   <style>
-    body {font-family: sans-serif; text-align: center; background: #c00; color: white; margin:0; padding:5%; min-height:100vh; display:flex; flex-direction:column; justify-content:space-between;}
-    h1 {font-size: clamp(1.8em, 6vw, 3em); margin:10px 0;}
-    p {font-size: 1.2em;}
-    #reveal {font-size: clamp(2.2em, 9vw, 4.5em); font-weight:bold; min-height:180px; padding:30px 10px;}
-    #counter {font-size: 1.6em; margin:20px;}
-    button {padding:18px 36px; font-size:1.4em; background:#fff; color:#c00; border:none; border-radius:12px; cursor:pointer; margin:15px;}
-    button:disabled {background:#555; color:#aaa; cursor:not-allowed;}
-    .done {background:#333 !important; color:#aaa !important;}
+    body {font-family: Arial, sans-serif; text-align:center; background:#c00; color:white; padding:20px; min-height:100vh;}
+    h1 {font-size:2.5em;}
+    .container {max-width:600px; margin:0 auto; background:rgba(0,0,0,0.3); padding:30px; border-radius:20px;}
+    select, button {padding:15px; font-size:1.3em; margin:10px; width:90%; border-radius:10px;}
+    button {background:#fff; color:#c00; border:none; cursor:pointer;}
+    .done {background:#333; color:#aaa;}
+    .links {margin-top:40px; background:rgba(0,0,0,0.4); padding:20px; border-radius:15px; text-align:left; font-size:1.1em;}
+    a {color:#ff0; display:block; margin:8px 0; word-break:break-all;}
   </style>
 </head>
 <body>
-  <h1>White Elephant 2025</h1>
-  <p>Names are locked in. Ready for the big reveal?</p>
 
-  <div id="counter"></div>
-  <div id="reveal">Tap below when everyone is watching…</div>
-  <button id="nextBtn" onclick="revealNext()">Reveal Next Player</button>
+<div class="container">
+  <h1>White Elephant 2025<br>Secret Picker Generator</h1>
+  <p>Scroll down to get the 16 unique links – send each person ONLY their own link!</p>
+  
+  <div class="links" id="linkList"></div>
+</div>
 
-  <script>
-    const originalNames = [
-      "Kylie","Nick","Kendra","Kaedynce","Rylee","Marin",
-      "Ellie","Zeke","Rayne","Drea","Brandon",
-      "Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"
-    ];
+<script>
+// ====================  EDIT THIS LIST ONCE  ====================
+const family = [
+  "Kylie","Nick","Kendra","Kaedynce","Rylee","Marin",
+  "Ellie","Zeke","Rayne","Drea","Brandon",
+  "Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"
+];
+// ================================================================
 
-    // Create a derangement (no fixed points)
-    let order = [];
-    do {
-      order = [...originalNames];
-      for (let i = order.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
-      }
-    } while (order.some((name, i) => name === originalNames[i]));
+const baseUrl = location.href.split('?')[0];  // works even on Netlify/GitHub Pages
 
-    let pos = 0;
-    const total = order.length;
+let html = "<h3>Unique secret links (copy & send):</h3>";
+family.forEach((name, i) => {
+  const token = btoa(Math.random()).substring(5,15); // random unique token
+  const url = `${baseUrl}?picker=${encodeURIComponent(name)}&t=${token}`;
+  html += `<strong>${name}:</strong><br><a href="${url}">${url}</a><hr>`;
+  // Store empty choices for this token
+  localStorage.setItem(token, JSON.stringify([]));
+});
+document.getElementById("linkList").innerHTML = html;
 
-    document.getElementById('counter').textContent = `1 of ${total}`;
+// If someone opened their personal link → show picker
+const params = new URLSearchParams(location.search);
+const pickerName = params.get("picker");
 
-    function revealNext() {
-      if (pos >= total) return;
-      document.getElementById('reveal').textContent = order[pos];
-      pos++;
-      if (pos < total) {
-        document.getElementById('counter').textContent = `${pos + 1} of ${total}`;
-      } else {
-        document.getElementById('counter').textContent = "That's everyone! Merry Christmas!";
-        document.getElementById('nextBtn').textContent = "All Done!";
-        document.getElementById('nextBtn').classList.add('done');
-        document.getElementById('nextBtn').disabled = true;
-      }
+if (pickerName) {
+  document.body.innerHTML = `
+    <div class="container">
+      <h1>Hello ${pickerName}!</h1>
+      <p>Who did <strong>you</strong> buy a gift for?</p>
+      <select id="chosen"></select><br>
+      <button id="submitBtn">Lock in my choice 🎄</button>
+      <p id="status"></p>
+    </div>`;
+
+  const select = document.getElementById("chosen");
+  const allChoices = {};
+
+  // Load everyone's choices so far
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.length === 10) { // our random tokens are ~10 chars
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      arr.forEach(obj => allChoices[obj.who] = obj.by);
     }
-  </script>
+  }
+
+  // Build dropdown (exclude self + already picked)
+  family.forEach(name => {
+    if (name !== pickerName && !allChoices[name]) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    }
+  });
+
+  if (select.options.length === 0) {
+    document.getElementById("status").innerHTML = "<h2>All gifts assigned!<br>Merry Christmas 🎅</h2>";
+    document.getElementById("submitBtn").style.display = "none";
+  }
+
+  document.getElementById("submitBtn").onclick = () => {
+    const chosen = select.value;
+    if (!chosen) return;
+    
+    // Save this choice under OUR token
+    const myToken = params.get("t");
+    const previous = JSON.parse(localStorage.getItem(myToken) || "[]");
+    previous.push({who: chosen, by: pickerName});
+    localStorage.setItem(myToken, JSON.stringify(previous));
+
+    document.body.innerHTML = `<div class="container"><h1>Thank you ${pickerName}!</h1>
+      <h2>You are buying for:<br><br><strong>${chosen}</strong></h2>
+      <p style="font-size:2em">🤫 Keep it secret!</p></div>`;
+  };
+}
+</script>
 </body>
 </html>
