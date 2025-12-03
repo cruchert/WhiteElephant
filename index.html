@@ -3,100 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>White Elephant Name Generator</title>
+  <title>Blind White Elephant Drawer</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 5%;
-      background: #f00505;
-      color: white;
-      margin: 0;
-      box-sizing: border-box;
-    }
-    h1 { font-size: clamp(1.5em, 5vw, 2.5em); margin-bottom: 10px; }
-    p { font-size: 1.1em; margin: 10px 0; }
-    textarea {
-      width: 90%;
-      max-width: 400px;
-      height: 150px;
-      padding: 10px;
-      margin: 10px auto;
-      display: block;
-      font-size: 1.1em;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 12px 20px;
-      margin: 10px;
-      font-size: 1.2em;
-      background: #fff;
-      color: #f00505;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover { background: #eee; }
-    #result {
-      font-size: clamp(1.2em, 4vw, 2em);
-      margin: 20px auto;
-      max-width: 90%;
-      text-align: left;
-    }
-    #result ol { padding-left: 20px; }
-    #result li { margin: 10px 0; }
-    small { display: block; margin-top: 10px; font-size: 0.9em; }
+    body {font-family: sans-serif; text-align: center; background: #c00; color: white; margin:0; padding:5%; min-height:100vh; display:flex; flex-direction:column; justify-content:space-between;}
+    h1 {font-size: clamp(1.8em, 6vw, 3em); margin:10px 0;}
+    p {font-size: 1.2em;}
+    #reveal {font-size: clamp(2.2em, 9vw, 4.5em); font-weight:bold; min-height:180px; padding:30px 10px;}
+    #counter {font-size: 1.6em; margin:20px;}
+    button {padding:18px 36px; font-size:1.4em; background:#fff; color:#c00; border:none; border-radius:12px; cursor:pointer; margin:15px;}
+    button:disabled {background:#555; color:#aaa; cursor:not-allowed;}
+    .done {background:#333 !important; color:#aaa !important;}
   </style>
 </head>
 <body>
-  <h1>White Elephant Order (No One Picks Themselves)</h1>
-  <p>Enter names (one per line):</p>
-  <textarea id="names">Kylie
-Nick
-Kendra
-Kaedynce
-Rylee
-Marin
-Ellie
-Zeke
-Rayne
-Drea
-Brandon
-Grandma Lisa
-Grandma Chris
-Roberto
-Diego
-JJ
-</textarea><br>
-  <button onclick="drawOrder()">Generate Fair Order</button>
-  <div id="result"></div>
+  <h1>White Elephant 2025</h1>
+  <p>Names are locked in. Ready for the big reveal?</p>
+
+  <div id="counter"></div>
+  <div id="reveal">Tap below when everyone is watching…</div>
+  <button id="nextBtn" onclick="revealNext()">Reveal Next Player</button>
 
   <script>
-    function derange(arr) {
-      let result = [...arr];
-      do {
-        for (let i = result.length - 1; i > 0; i--) {
-          let j = Math.floor(Math.random() * (i + 1));
-          [result[i], result[j]] = [result[j], result[i]];
-        }
-      } while (result.some((name, i) => name === arr[i]));
-      return result;
-    }
+    const originalNames = [
+      "Kylie","Nick","Kendra","Kaedynce","Rylee","Marin",
+      "Ellie","Zeke","Rayne","Drea","Brandon",
+      "Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"
+    ];
 
-    function drawOrder() {
-      let names = document.getElementById('names').value.trim().split('\n').map(n => n.trim()).filter(n => n);
-      if (names.length < 2) { alert('Need 2+ names'); return; }
+    // Create a derangement (no fixed points)
+    let order = [];
+    do {
+      order = [...originalNames];
+      for (let i = order.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+    } while (order.some((name, i) => name === originalNames[i]));
 
-      let order;
-      try { order = derange(names); }
-      catch { order = names.sort(() => Math.random() - 0.5); }
+    let pos = 0;
+    const total = order.length;
 
-      let output = '<ol>';
-      order.forEach((name, i) => {
-        output += `<li><strong>${i+1}.</strong> ${name}</li>`;
-      });
-      output += '</ol><small>No one picks their own name!</small>';
-      document.getElementById('result').innerHTML = output;
+    document.getElementById('counter').textContent = `1 of ${total}`;
+
+    function revealNext() {
+      if (pos >= total) return;
+      document.getElementById('reveal').textContent = order[pos];
+      pos++;
+      if (pos < total) {
+        document.getElementById('counter').textContent = `${pos + 1} of ${total}`;
+      } else {
+        document.getElementById('counter').textContent = "That's everyone! Merry Christmas!";
+        document.getElementById('nextBtn').textContent = "All Done!";
+        document.getElementById('nextBtn').classList.add('done');
+        document.getElementById('nextBtn').disabled = true;
+      }
     }
   </script>
 </body>
