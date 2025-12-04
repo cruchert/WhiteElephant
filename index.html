@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Secret Santa 2025</title>
 <style>
-  body {margin:0; height:100vh; background:#900; color:white; font-family:Arial, sans-serif;
-        display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;
+  body {margin:0; height:100vh; background:#900 url('https://images.unsplash.com/photo-1512386236314-4049a1967a0f?w=1920') center/cover; 
+        color:white; font-family:Arial; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;
         overflow:hidden; position:relative;}
-  h1 {font-size:3.2em; text-shadow:0 0 20px gold; z-index:10;}
+  h1 {font-size:3.5em; text-shadow:0 0 30px gold, 0 0 50px red; z-index:10;}
   input {padding:18px; font-size:1.8em; width:90%; max-width:420px; text-align:center; border-radius:15px; border:none; margin:15px; z-index:10;}
-  button {padding:20px 50px; font-size:2em; background:#fff; color:#c00; border:none; border-radius:20px; cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.4); z-index:10;}
+  button {padding:20px 50px; font-size:2em; background:#fff; color:#c00; border:none; border-radius:20px; cursor:pointer; box-shadow:0 8px 25px rgba(0,0,0,0.5); z-index:10;}
   button:active {transform:translateY(4px);}
-  .big {font-size:4.8em; font-weight:bold; margin:30px 0; text-shadow:0 0 20px gold; z-index:10;}
+  .big {font-size:5em; font-weight:bold; margin:30px 0; text-shadow:0 0 30px gold; z-index:10;}
   .small {font-size:1.4em; z-index:10;}
-  .emoji {position:absolute; font-size:2.5em; pointer-events:none; animation:fall linear forwards; z-index:1;}
-  @keyframes fall {to {transform:translateY(110vh) rotate(360deg); opacity:0;}}
-  .testbtn {position:fixed; top:10px; right:10px; font-size:0.9em; padding:8px 12px; background:#000; opacity:0.6; z-index:100;}
+  .testbtn {position:fixed; top:10px; right:10px; font-size:0.9em; padding:8px 12px; background:#000; opacity:0.7; z-index:100;}
+
+  /* Falling Christmas graphics */
+  .falling {position:absolute; pointer-events:none; animation:fall linear forwards; z-index:5;}
+  @keyframes fall {
+    0%   {transform:translateY(-100px) rotate(0deg);}
+    100% {transform:translateY(110vh) rotate(360deg);}
+  }
 </style>
 </head>
 <body>
@@ -48,7 +53,6 @@ const STORAGE_KEY = "SecretSanta2025_Final";
 
 let assignments = {};
 let used = new Set();
-
 const saved = localStorage.getItem(STORAGE_KEY);
 if (saved) {
   const data = JSON.parse(saved);
@@ -61,11 +65,7 @@ document.getElementById("goBtn").addEventListener("click", pick);
 function pick() {
   const input = document.getElementById("nameInput").value.trim();
   const person = family.find(n => n.toLowerCase() === input.toLowerCase());
-
-  if (!person) {
-    alert("Name not found — check spelling!");
-    return;
-  }
+  if (!person) { alert("Name not found — check spelling!"); return; }
 
   if (assignments[person]) {
     showResult(person, assignments[person]);
@@ -73,10 +73,7 @@ function pick() {
   }
 
   const available = family.filter(n => n !== person && !used.has(n));
-  if (available.length === 0) {
-    alert("Everyone already has a person!");
-    return;
-  }
+  if (available.length === 0) { alert("Everyone already has a person!"); return; }
 
   const chosen = available[Math.floor(Math.random() * available.length)];
   assignments[person] = chosen;
@@ -92,30 +89,41 @@ function showResult(person, target) {
   document.getElementById("result").style.display = "block";
 }
 
-// Falling Christmas emojis
-const emojis = ["Candy Cane","Christmas Tree","Santa","Snowman","Snowflake","Gift","Bell","Star"];
-setInterval(() => {
-  if (Math.random() < 0.7) {
-    const e = document.createElement("div");
-    e.textContent = emojis[Math.floor(Math.random()*emojis.length)];
-    e.className = "emoji";
-    e.style.left = Math.random()*100 + "vw";
-    e.style.animationDuration = (Math.random()*4 + 4) + "s";
-    document.body.appendChild(e);
-    setTimeout(() => e.remove(), 10000);
-  }
-}, 400);
+// Real animated Christmas graphics (no words!)
+const icons = [
+  "christmas-tree", "snowflake", "reindeer", "santa-claus", "snowman", "candy-cane", "gift", "bell"
+];
+const urls = [
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f384.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u2744.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f98c.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f385.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u2603.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f36c.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f381.svg",
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f514.svg"
+];
 
-// TEST / RESET BUTTON (only you see this)
-const testBtn = document.createElement("button");
-testBtn.textContent = "RESET ALL (for testing)";
-testBtn.className = "testbtn";
-testBtn.onclick = () => {
-  if (confirm("Clear EVERYONE'S picks? (only for testing)")) {
-    localStorage.removeItem(STORAGE_KEY);
-    location.reload();
+setInterval(() => {
+  if (Math.random() < 0.6) {
+    const img = document.createElement("img");
+    const idx = Math.floor(Math.random() * icons.length);
+    img.src = urls[idx];
+    img.alt = icons[idx];
+    img.className = "falling";
+    img.style.left = Math.random() * 100 + "vw";
+    img.style.width = (30 + Math.random() * 50) + "px";
+    img.style.animationDuration = (4 + Math.random() * 5) + "s";
+    document.body.appendChild(img);
+    setTimeout(() => img.remove(), 12000);
   }
-};
+}, 500);
+
+// TEST/RESET button (delete these lines when going live)
+const testBtn = document.createElement("button");
+testBtn.textContent = "RESET ALL (testing only)";
+testBtn.className = "testbtn";
+testBtn.onclick = () => confirm("Clear all picks?") && (localStorage.removeItem(STORAGE_KEY), location.reload());
 document.body.appendChild(testBtn);
 </script>
 </body>
