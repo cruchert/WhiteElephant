@@ -1,105 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>White Elephant 2025 – Secret Picker</title>
-  <style>
-    body {font-family: Arial, sans-serif; text-align:center; background:#c00; color:white; padding:20px; min-height:100vh;}
-    h1 {font-size:2.5em;}
-    .container {max-width:600px; margin:0 auto; background:rgba(0,0,0,0.3); padding:30px; border-radius:20px;}
-    select, button {padding:15px; font-size:1.3em; margin:10px; width:90%; border-radius:10px;}
-    button {background:#fff; color:#c00; border:none; cursor:pointer;}
-    .done {background:#333; color:#aaa;}
-    .links {margin-top:40px; background:rgba(0,0,0,0.4); padding:20px; border-radius:15px; text-align:left; font-size:1.1em;}
-    a {color:#ff0; display:block; margin:8px 0; word-break:break-all;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secret Santa 2025</title>
+<style>
+  body {margin:0; height:100vh; background:#c00; color:white; font-family:Arial; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; box-sizing:border-box;}
+  h1 {font-size:2.8em; margin:10px;}
+  .big {font-size:4.5em; font-weight:bold; margin:30px 0;}
+  button {padding:20px 40px; font-size:1.8em; background:white; color:#c00; border:none; border-radius:15px; cursor:pointer; margin:15px;}
+  .hidden {display:none;}
+</style>
 </head>
 <body>
 
-<div class="container">
-  <h1>White Elephant 2025<br>Secret Picker Generator</h1>
-  <p>Scroll down to get the 16 unique links – send each person ONLY their own link!</p>
-  
-  <div class="links" id="linkList"></div>
+<div id="startScreen">
+  <h1>Secret Santa 2025</h1>
+  <p>16 family members • completely blind</p>
+  <button onclick="start()">Start Revealing</button>
+</div>
+
+<div id="revealScreen" class="hidden">
+  <h1>Your turn!</h1>
+  <div class="big" id="yourName"></div>
+  <button onclick="showAssignment()">Show Who I’m Buying For</button>
+</div>
+
+<div id="assignmentScreen" class="hidden">
+  <h1>You are buying for…</h1>
+  <div class="big" id="targetName"></div>
+  <p style="font-size:2em">🤫 Keep it secret!<br>Pass the phone to the next person</p>
+  <button onclick="nextPerson()">Next Person →</button>
 </div>
 
 <script>
-// ====================  EDIT THIS LIST ONCE  ====================
-const family = [
-  "Kylie","Nick","Kendra","Kaedynce","Rylee","Marin",
-  "Ellie","Zeke","Rayne","Drea","Brandon",
-  "Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"
-];
-// ================================================================
+// ==== YOUR FAMILY — ONLY EDIT THIS LIST ====
+const family = ["Kylie","Nick","Kendra","Kaedynce","Rylee","Marin","Ellie","Zeke","Rayne","Drea","Brandon","Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"];
+// ===========================================
 
-const baseUrl = location.href.split('?')[0];  // works even on Netlify/GitHub Pages
+let assignment = {};   // will hold "Kylie" → "Diego" etc.
+let index = 0;
 
-let html = "<h3>Unique secret links (copy & send):</h3>";
-family.forEach((name, i) => {
-  const token = btoa(Math.random()).substring(5,15); // random unique token
-  const url = `${baseUrl}?picker=${encodeURIComponent(name)}&t=${token}`;
-  html += `<strong>${name}:</strong><br><a href="${url}">${url}</a><hr>`;
-  // Store empty choices for this token
-  localStorage.setItem(token, JSON.stringify([]));
-});
-document.getElementById("linkList").innerHTML = html;
-
-// If someone opened their personal link → show picker
-const params = new URLSearchParams(location.search);
-const pickerName = params.get("picker");
-
-if (pickerName) {
-  document.body.innerHTML = `
-    <div class="container">
-      <h1>Hello ${pickerName}!</h1>
-      <p>Who did <strong>you</strong> buy a gift for?</p>
-      <select id="chosen"></select><br>
-      <button id="submitBtn">Lock in my choice 🎄</button>
-      <p id="status"></p>
-    </div>`;
-
-  const select = document.getElementById("chosen");
-  const allChoices = {};
-
-  // Load everyone's choices so far
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.length === 10) { // our random tokens are ~10 chars
-      const arr = JSON.parse(localStorage.getItem(key) || "[]");
-      arr.forEach(obj => allChoices[obj.who] = obj.by);
-    }
+// Generate a perfect derangement (no one gets themselves)
+do {
+  assignment = {};
+  let targets = [...family];
+  for (let i = targets.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [targets[i], targets[j]] = [targets[j], targets[i]];
   }
-
-  // Build dropdown (exclude self + already picked)
-  family.forEach(name => {
-    if (name !== pickerName && !allChoices[name]) {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      select.appendChild(opt);
-    }
-  });
-
-  if (select.options.length === 0) {
-    document.getElementById("status").innerHTML = "<h2>All gifts assigned!<br>Merry Christmas 🎅</h2>";
-    document.getElementById("submitBtn").style.display = "none";
+  let ok = true;
+  for (let i = 0; i < family.length; i++) {
+    if (family[i] === targets[i]) { ok = false; break; }
+    assignment[family[i]] = targets[i];
   }
+} while (!ok);
 
-  document.getElementById("submitBtn").onclick = () => {
-    const chosen = select.value;
-    if (!chosen) return;
-    
-    // Save this choice under OUR token
-    const myToken = params.get("t");
-    const previous = JSON.parse(localStorage.getItem(myToken) || "[]");
-    previous.push({who: chosen, by: pickerName});
-    localStorage.setItem(myToken, JSON.stringify(previous));
+function start() {
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("revealScreen").classList.remove("hidden");
+  nextPerson();
+}
 
-    document.body.innerHTML = `<div class="container"><h1>Thank you ${pickerName}!</h1>
-      <h2>You are buying for:<br><br><strong>${chosen}</strong></h2>
-      <p style="font-size:2em">🤫 Keep it secret!</p></div>`;
-  };
+function nextPerson() {
+  if (index >= family.length) {
+    document.body.innerHTML = "<h1>All done!<br>Merry Christmas 🎄</h1>";
+    return;
+  }
+  document.getElementById("yourName").textContent = family[index];
+  document.getElementById("revealScreen").classList.remove("hidden");
+  document.getElementById("assignmentScreen").classList.add("hidden");
+}
+
+function showAssignment() {
+  document.getElementById("targetName").textContent = assignment[family[index]];
+  document.getElementById("revealScreen").classList.add("hidden");
+  document.getElementById("assignmentScreen").classList.remove("hidden");
+  index++;
 }
 </script>
 </body>
