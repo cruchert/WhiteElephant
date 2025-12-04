@@ -113,13 +113,6 @@ setInterval(() => {
     setTimeout(() => img.remove(), 15000);
   }
 }, 450);
-
-// TESTING button — delete when going live
-const testBtn = document.createElement("button");
-testBtn.textContent = "RESET ALL (testing)";
-testBtn.className = "testbtn";
-testBtn.onclick = () => confirm("Clear all picks?") && (localStorage.removeItem(STORAGE_KEY), location.reload());
-document.body.appendChild(testBtn);
 </script>
 </body>
 </html>
