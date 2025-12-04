@@ -5,78 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Secret Santa 2025</title>
 <style>
-  body {margin:0; height:100vh; background:#c00; color:white; font-family:Arial; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; box-sizing:border-box;}
-  h1 {font-size:2.8em; margin:10px;}
-  .big {font-size:4.5em; font-weight:bold; margin:30px 0;}
-  button {padding:20px 40px; font-size:1.8em; background:white; color:#c00; border:none; border-radius:15px; cursor:pointer; margin:15px;}
-  .hidden {display:none;}
+  body {margin:0; height:100vh; background:#c00; color:white; font-family:Arial; text-align:center; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;}
+  .bigbutton {padding:25px 50px; font-size:2.2em; background:white; color:#c00; border:none; border-radius:20px; cursor:pointer;}
+  .reveal {font-size:3.8em; font-weight:bold; line-height:1.4; margin:40px 0;}
+  .links {background:rgba(0,0,0,0.4); padding:25px; border-radius:20px; max-width:90%; text-align:left;}
+  a {color:#ff0; display:block; margin:12px 0; word-break:break-all; font-size:1.1em;}
+  hr {border:1px solid #aaa;}
 </style>
 </head>
 <body>
 
-<div id="startScreen">
+<!-- YOU see this screen with all 16 links -->
+<div id="admin" class="links">
+  <h2>Send each person ONLY their own link below:</h2>
+  <div id="linkList"></div>
+</div>
+
+<!-- Each person sees only this screen -->
+<div id="person" style="display:none;">
   <h1>Secret Santa 2025</h1>
-  <p>16 family members • completely blind</p>
-  <button onclick="start()">Start Revealing</button>
-</div>
-
-<div id="revealScreen" class="hidden">
-  <h1>Your turn!</h1>
-  <div class="big" id="yourName"></div>
-  <button onclick="showAssignment()">Show Who I’m Buying For</button>
-</div>
-
-<div id="assignmentScreen" class="hidden">
-  <h1>You are buying for…</h1>
-  <div class="big" id="targetName"></div>
-  <p style="font-size:2em">🤫 Keep it secret!<br>Pass the phone to the next person</p>
-  <button onclick="nextPerson()">Next Person →</button>
+  <p>This link is just for you.</p>
+  <button class="bigbutton" id="revealBtn">Who am I buying for?</button>
+  <div class="reveal" id="result" style="display:none;"></div>
+  <p style="font-size:2em; display:none;" id="doneMsg">Keep it secret!<br>Merry Christmas 🎄</p>
 </div>
 
 <script>
-// ==== YOUR FAMILY — ONLY EDIT THIS LIST ====
+// ==== EDIT ONLY THIS LIST ====
 const family = ["Kylie","Nick","Kendra","Kaedynce","Rylee","Marin","Ellie","Zeke","Rayne","Drea","Brandon","Grandma Lisa","Grandma Chris","Roberto","Diego","JJ"];
-// ===========================================
+// ============================
 
-let assignment = {};   // will hold "Kylie" → "Diego" etc.
-let index = 0;
+const STORAGE_KEY = "SecretSanta2025_Assigned";
 
-// Generate a perfect derangement (no one gets themselves)
-do {
-  assignment = {};
-  let targets = [...family];
-  for (let i = targets.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [targets[i], targets[j]] = [targets[j], targets[i]];
-  }
-  let ok = true;
-  for (let i = 0; i < family.length; i++) {
-    if (family[i] === targets[i]) { ok = false; break; }
-    assignment[family[i]] = targets[i];
-  }
-} while (!ok);
+// Generate a perfect derangement once (no one gets themselves)
+function generateAssignments() {
+  let targets, valid;
+  do {
+    targets = [...family];
+    for (let i = targets.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [targets[i], targets[j]] = [targets[j], targets[i]];
+    }
+    valid = targets.every((t, i) => t !== family[i]);
+  } while (!valid);
 
-function start() {
-  document.getElementById("startScreen").classList.add("hidden");
-  document.getElementById("revealScreen").classList.remove("hidden");
-  nextPerson();
+  const assign = {};
+  family.forEach((person, i) => assign[person] = targets[i]);
+  return assign;
 }
 
-function nextPerson() {
-  if (index >= family.length) {
-    document.body.innerHTML = "<h1>All done!<br>Merry Christmas 🎄</h1>";
-    return;
-  }
-  document.getElementById("yourName").textContent = family[index];
-  document.getElementById("revealScreen").classList.remove("hidden");
-  document.getElementById("assignmentScreen").classList.add("hidden");
-}
+const assignments = generateAssignments();
 
-function showAssignment() {
-  document.getElementById("targetName").textContent = assignment[family[index]];
-  document.getElementById("revealScreen").classList.add("hidden");
-  document.getElementById("assignmentScreen").classList.remove("hidden");
-  index++;
+// Show admin screen with 16 unique links
+if (!location.hash) {
+  let html = "";
+  family.forEach(name => {
+    const hash = btoa(name).replace(/=/g,'');
+    const url = location.href.split('#')[0] + "#" + hash;
+    html += `<strong>${name}:</strong><br><a href="${url}">${url}</a><hr>`;
+  });
+  document.getElementById("linkList").innerHTML = html;
+}
+// Person opened their personal link
+else {
+  document.getElementById("admin").style.display = "none";
+  document.getElementById("person").style.display = "block";
+
+  const myHash = location.hash.slice(1);
+  const myName = family.find(n => btoa(n).replace(/=/g,'') === myHash) || "Unknown";
+
+  // Load already claimed names
+  const claimed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+  document.getElementById("revealBtn").onclick = () => {
+    if (claimed[myName]) {
+      document.getElementById("result").textContent = claimed[myName];
+    } else {
+      const target = assignments[myName];
+      claimed[myName] = target;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(claimed));
+      document.getElementById("result").textContent = target;
+    }
+    document.getElementById("revealBtn").style.display = "none";
+    document.getElementById("result").style.display = "block";
+    document.getElementById("doneMsg").style.display = "block";
+  };
 }
 </script>
 </body>
